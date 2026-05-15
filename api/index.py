@@ -13,6 +13,8 @@ app.add_middleware(
     allow_origins=[
         "https://qrkhata.com",
         "https://www.qrkhata.com",
+        "https://qr-khata-updated.vercel.app",
+        "http://localhost:5173",
     ],
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
