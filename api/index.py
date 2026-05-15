@@ -75,14 +75,14 @@ def register(payload: RegisterRequest):
         })
         return RegisterResponse(
             success=True,
-            message="You're on the list! We'll reach out soon.",
+            message="🎉 Welcome to QRKhata! Your beta access is confirmed 🚀 App access will be shared with you soon",
             status="joined",
             mobile=mobile,
         )
     except DuplicateKeyError:
         return RegisterResponse(
             success=True,
-            message="You're already registered for early access.",
+            message="You're already part of the QRKhata's early access program 🚀 App access will be shared with you soon",
             status="already_registered",
             mobile=mobile,
         )
