@@ -27,11 +27,11 @@ app.add_middleware(
 # MongoDB — set MONGO_URI and MONGO_DB in Vercel Environment Variables
 # ---------------------------------------------------------------
 MONGO_URI = os.getenv("mongodb+srv://qrkhata:qrkhata123@cluster0.gpex6ct.mongodb.net/?appName=Cluster0")          # required — set in Vercel dashboard
-DB_NAME   = os.getenv("MONGO_DB", "early_access")
+DB_NAME   = os.getenv("MONGO_DB", "test")
 
 client     = MongoClient(MONGO_URI)
 db         = client[DB_NAME]
-collection = db["registrations"]
+collection = db["waitlists"]
 
 # Unique index on mobile — idempotent, safe to call on every cold start
 collection.create_index("mobile", unique=True)
