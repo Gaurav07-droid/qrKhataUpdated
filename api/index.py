@@ -1,17 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
 from pymongo import MongoClient, DESCENDING
 from pymongo.errors import DuplicateKeyError
 import re
-import os
 from datetime import datetime, timezone
 
 app = FastAPI(title="Early Access Registration API", version="1.0.0")
 
-# ---------------------------------------------------------------
-# CORS — only allow qrkhata.com (and www subdomain)
-# ---------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -23,19 +19,23 @@ app.add_middleware(
     allow_credentials=False,
 )
 
-# ---------------------------------------------------------------
-# MongoDB — set MONGO_URI and MONGO_DB in Vercel Environment Variables
-# ---------------------------------------------------------------
-MONGO_URI = os.getenv("mongodb+srv://qrkhata:qrkhata123@cluster0.gpex6ct.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")          # required — set in Vercel dashboard
-DB_NAME   = os.getenv("MONGO_DB", "test")
+MONGO_URI = "mongodb+srv://qrkhata:qrkhata123@cluster0.gpex6ct.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+DB_NAME   = "test"
 
-client     = MongoClient(MONGO_URI)
-db         = client[DB_NAME]
-collection = db["waitlists"]
+# Lazy connection — created once on first request, not at import time
+_client = None
 
-# Unique index on mobile — idempotent, safe to call on every cold start
-collection.create_index("mobile", unique=True)
-# ---------------------------------------------------------------
+def get_collection():
+    global _client
+    if _client is None:
+        _client = MongoClient(
+            MONGO_URI,
+            serverSelectionTimeoutMS=5000,  # fail fast — 5s max
+            connectTimeoutMS=5000,
+            socketTimeoutMS=5000,
+        )
+        _client[DB_NAME]["waitlists"].create_index("mobile", unique=True)
+    return _client[DB_NAME]["waitlists"]
 
 
 def normalize_mobile(mobile: str) -> str:
@@ -57,12 +57,13 @@ class RegisterRequest(BaseModel):
 class RegisterResponse(BaseModel):
     success: bool
     message: str
-    status:  str    # "joined" | "already_registered"
+    status:  str
     mobile:  str
 
 
 @app.post("/register", response_model=RegisterResponse)
 def register(payload: RegisterRequest):
+    collection = get_collection()
     mobile = payload.mobile
     now    = datetime.now(timezone.utc)
 
@@ -89,15 +90,17 @@ def register(payload: RegisterRequest):
 
 @app.get("/registrations")
 def list_registrations():
+    collection = get_collection()
     docs = collection.find({}, {"_id": 0}).sort("joined_at", DESCENDING)
     return list(docs)
 
 
 @app.get("/health")
 def health():
-    client.admin.command("ping")
+    col = get_collection()
+    col.database.client.admin.command("ping")
     return {"status": "ok", "db": DB_NAME}
 
-# Vercel serverless handler — wraps FastAPI for AWS Lambda-compatible runtime
+
 from mangum import Mangum
 handler = Mangum(app, lifespan="off")
