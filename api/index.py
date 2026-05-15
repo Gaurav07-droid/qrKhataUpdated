@@ -26,7 +26,7 @@ app.add_middleware(
 # ---------------------------------------------------------------
 # MongoDB — set MONGO_URI and MONGO_DB in Vercel Environment Variables
 # ---------------------------------------------------------------
-MONGO_URI = os.getenv("mongodb+srv://qrkhata:qrkhata123@cluster0.gpex6ct.mongodb.net/?appName=Cluster0")          # required — set in Vercel dashboard
+MONGO_URI = os.getenv("mongodb+srv://qrkhata:qrkhata123@cluster0.gpex6ct.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")          # required — set in Vercel dashboard
 DB_NAME   = os.getenv("MONGO_DB", "test")
 
 client     = MongoClient(MONGO_URI)
